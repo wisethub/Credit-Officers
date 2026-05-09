@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Receipt Analytics Dashboard</title>
+<title>Advanced Receipt Analytics Dashboard</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -195,7 +195,7 @@ body{
 table{
   width:100%;
   border-collapse:collapse;
-  min-width:1200px;
+  min-width:1300px;
 }
 
 thead{
@@ -294,54 +294,20 @@ function postMessageWithResponse(message) {
 }
 
 /* ══════════════════════════════════
-   Customer Fetch
+   Generic Pagination Fetch
 ══════════════════════════════════ */
-async function getCustomerBatch(onProgress) {
-  const allItems = [];
-  let nextToken  = null;
-  let pageNum    = 0;
-  let apiTotal   = null;
-
-  do {
-    const path = nextToken
-      ? '/api4/customer-batch?PageSize=99999&next_page_token=' + encodeURIComponent(nextToken)
-      : '/api4/customer-batch?PageSize=99999';
-
-    const data = await postMessageWithResponse({ type: 'api-request', method: 'GET', path });
-
-    const page = Array.isArray(data) ? data : (data.items || data.data || []);
-    allItems.push(...page);
-
-    nextToken = data.next_page_token || data.nextPageToken || data._links?.next?.href || null;
-
-    if (apiTotal === null) {
-      apiTotal = data.totalCount ?? data.total ?? data.count ?? data._metadata?.totalCount ?? null;
-    }
-
-    pageNum++;
-    if (onProgress) onProgress(allItems.length, apiTotal, pageNum);
-    if (pageNum >= 1000) break;
-
-  } while (nextToken);
-
-  return allItems;
-}
-
-/* ══════════════════════════════════
-   Receipt Fetch
-══════════════════════════════════ */
-async function getReceiptBatch(onProgress) {
+async function fetchAllPages(endpoint,onProgress){
 
   const allItems = [];
-  let nextToken  = null;
-  let pageNum    = 0;
-  let apiTotal   = null;
+  let nextToken = null;
+  let pageNum = 0;
+  let apiTotal = null;
 
-  do {
+  do{
 
     const path = nextToken
-      ? '/api4/receipt-batch?PageSize=99999&next_page_token=' + encodeURIComponent(nextToken)
-      : '/api4/receipt-batch?PageSize=99999';
+      ? `${endpoint}?PageSize=99999&next_page_token=${encodeURIComponent(nextToken)}`
+      : `${endpoint}?PageSize=99999`;
 
     const data = await postMessageWithResponse({
       type:'api-request',
@@ -349,21 +315,37 @@ async function getReceiptBatch(onProgress) {
       path
     });
 
-    const page = Array.isArray(data) ? data : (data.items || data.data || []);
+    const page =
+      Array.isArray(data)
+      ? data
+      : (data.items || data.data || []);
+
     allItems.push(...page);
 
-    nextToken = data.next_page_token || data.nextPageToken || data._links?.next?.href || null;
+    nextToken =
+      data.next_page_token ||
+      data.nextPageToken ||
+      data._links?.next?.href ||
+      null;
 
-    if (apiTotal === null) {
-      apiTotal = data.totalCount ?? data.total ?? data.count ?? data._metadata?.totalCount ?? null;
+    if(apiTotal === null){
+      apiTotal =
+        data.totalCount ??
+        data.total ??
+        data.count ??
+        data._metadata?.totalCount ??
+        null;
     }
 
     pageNum++;
-    if(onProgress) onProgress(allItems.length, apiTotal, pageNum);
+
+    if(onProgress){
+      onProgress(allItems.length,apiTotal,pageNum);
+    }
 
     if(pageNum >= 1000) break;
 
-  } while(nextToken);
+  }while(nextToken);
 
   return allItems;
 }
@@ -375,16 +357,23 @@ const fmtMoney = v =>
 });
 
 const fmtDate = d => {
+
   if(!d) return '-';
+
   const dt = new Date(d);
-  return isNaN(dt) ? '-' :
-    dt.toLocaleDateString(undefined,{
-      year:'numeric',
-      month:'short',
-      day:'numeric'
-    });
+
+  if(isNaN(dt)) return '-';
+
+  return dt.toLocaleDateString(undefined,{
+    year:'numeric',
+    month:'short',
+    day:'numeric'
+  });
 };
 
+/* ══════════════════════════════════
+   Main Loader
+══════════════════════════════════ */
 async function loadAllRecords(){
 
   const btn = document.getElementById('load-btn');
@@ -399,31 +388,45 @@ async function loadAllRecords(){
 
   try{
 
-    const customers = await getCustomerBatch((loaded,total)=>{
-      status.textContent = `Loading customers: ${loaded.toLocaleString()}`;
-      if(total){
-        bar.style.width = Math.min(45,loaded/total*45) + '%';
-      }
-    });
+    status.textContent = 'Loading customers...';
 
-    const receipts = await getReceiptBatch((loaded,total)=>{
-      status.textContent = `Loading receipts: ${loaded.toLocaleString()}`;
-      if(total){
-        bar.style.width = 45 + Math.min(50,loaded/total*50) + '%';
-      }
-    });
+    const customers =
+      await fetchAllPages('/api4/customer-batch');
+
+    bar.style.width = '25%';
+
+    status.textContent = 'Loading receipts...';
+
+    const receipts =
+      await fetchAllPages('/api4/receipt-batch');
+
+    bar.style.width = '50%';
+
+    status.textContent = 'Loading bank & cash accounts...';
+
+    const bankCashAccounts =
+      await fetchAllPages('/api4/bank-or-cash-account-batch');
+
+    bar.style.width = '75%';
+
+    status.textContent = 'Loading general ledger transactions...';
+
+    const glTransactions =
+      await fetchAllPages('/api4/general-ledger-transactions-batch');
 
     bar.style.width = '100%';
 
     status.textContent =
-      `✓ ${customers.length.toLocaleString()} customers · ${receipts.length.toLocaleString()} receipts loaded`;
+      `✓ Loaded ${receipts.length.toLocaleString()} receipts`;
 
     btn.disabled = false;
-    btn.textContent = '↺ Reload';
+    btn.textContent = '↺ Reload Dashboard';
 
     render({
       customers,
-      receipts
+      receipts,
+      bankCashAccounts,
+      glTransactions
     });
 
   }catch(err){
@@ -442,12 +445,17 @@ async function loadAllRecords(){
   }
 }
 
+/* ══════════════════════════════════
+   Main Render
+══════════════════════════════════ */
 function render(data){
 
   const app = document.getElementById('app');
 
   const customers = data?.customers || [];
   const receipts = data?.receipts || [];
+  const bankCashAccounts = data?.bankCashAccounts || [];
+  const glTransactions = data?.glTransactions || [];
 
   if(!receipts.length){
 
@@ -459,23 +467,62 @@ function render(data){
     return;
   }
 
+  /* Customer Map */
   const customerMap = {};
 
   customers.forEach(c=>{
-    customerMap[c?.key] = c?.item?.name || 'Unknown Customer';
+    customerMap[c?.key] =
+      c?.item?.name || 'Unknown Customer';
   });
 
+  /* Bank/Cash Account Map */
+  const paymentMethodMap = {};
+
+  bankCashAccounts.forEach(acc=>{
+
+    paymentMethodMap[acc?.key] =
+      acc?.item?.name ||
+      acc?.item?.text ||
+      acc?.item?.nameWithCode ||
+      'Unknown Payment Method';
+
+  });
+
+  /* GL Transaction Map */
+  const glMap = {};
+
+  glTransactions.forEach(g=>{
+
+    const transactionKey =
+      g?.item?.source ||
+      g?.item?.reference ||
+      g?.key;
+
+    if(transactionKey){
+
+      glMap[transactionKey] =
+        g?.item?.accountName ||
+        g?.item?.account ||
+        g?.item?.name ||
+        g?.item?.description ||
+        'Unknown Account';
+
+    }
+
+  });
+
+  /* Normalize Data */
   const rows = [];
 
   receipts.forEach(r=>{
 
     const customerName =
-      customerMap[r?.item?.customer] || 'Unknown Customer';
+      customerMap[r?.item?.customer] ||
+      'Unknown Customer';
 
     const paymentMethod =
-      r?.item?.receivedInName ||
-      r?.item?.receivedIn ||
-      'Unknown';
+      paymentMethodMap[r?.item?.receivedIn] ||
+      'Unknown Payment Method';
 
     const lines = r?.item?.lines || [];
 
@@ -486,19 +533,22 @@ function render(data){
         || 'Unassigned';
 
       const account =
+        glMap[line?.account] ||
         line?.accountName ||
         line?.lineDescription ||
         line?.account ||
         'Unknown Account';
 
       rows.push({
+
         date:r?.item?.date,
         reference:r?.item?.reference,
         customer:customerName,
         officer,
-        amount:Number(line?.amount || 0),
         paymentMethod,
-        account
+        account,
+        amount:Number(line?.amount || 0)
+
       });
 
     });
@@ -510,23 +560,33 @@ function render(data){
 
       <div class="filter-box">
         <label>Credit Officer</label>
+
         <select id="officerFilter">
           <option value="">All Officers</option>
+
           ${[...new Set(rows.map(r=>r.officer))]
             .sort()
-            .map(o=>`<option value="${o}">${o}</option>`)
-            .join('')}
+            .map(o=>`
+              <option value="${o}">
+                ${o}
+              </option>
+            `).join('')}
         </select>
       </div>
 
       <div class="filter-box">
         <label>Payment Method</label>
+
         <select id="paymentFilter">
           <option value="">All Payment Methods</option>
+
           ${[...new Set(rows.map(r=>r.paymentMethod))]
             .sort()
-            .map(p=>`<option value="${p}">${p}</option>`)
-            .join('')}
+            .map(p=>`
+              <option value="${p}">
+                ${p}
+              </option>
+            `).join('')}
         </select>
       </div>
 
@@ -542,12 +602,14 @@ function render(data){
 
       <div class="filter-box">
         <label>Customer Search</label>
-        <input type="text" id="searchInput" placeholder="Search customer...">
+        <input type="text" id="searchInput" placeholder="Search customer">
       </div>
 
       <div class="filter-box">
         <label>&nbsp;</label>
-        <button class="run-btn" id="runBtn">▶ Run Analysis</button>
+        <button class="run-btn" id="runBtn">
+          ▶ Run Analysis
+        </button>
       </div>
 
     </div>
@@ -559,11 +621,23 @@ function render(data){
 
   function runAnalysis(){
 
-    const officer = document.getElementById('officerFilter').value;
-    const payment = document.getElementById('paymentFilter').value;
-    const fromDate = document.getElementById('fromDate').value;
-    const toDate = document.getElementById('toDate').value;
-    const search = document.getElementById('searchInput').value.toLowerCase().trim();
+    const officer =
+      document.getElementById('officerFilter').value;
+
+    const payment =
+      document.getElementById('paymentFilter').value;
+
+    const fromDate =
+      document.getElementById('fromDate').value;
+
+    const toDate =
+      document.getElementById('toDate').value;
+
+    const search =
+      document.getElementById('searchInput')
+      .value
+      .toLowerCase()
+      .trim();
 
     const filtered = rows.filter(r=>{
 
@@ -574,29 +648,38 @@ function render(data){
         !payment || r.paymentMethod === payment;
 
       const searchMatch =
-        !search || r.customer.toLowerCase().includes(search);
+        !search ||
+        r.customer.toLowerCase().includes(search);
 
       let dateMatch = true;
 
       if(fromDate){
+
         dateMatch =
           dateMatch &&
           new Date(r.date) >= new Date(fromDate);
+
       }
 
       if(toDate){
+
         const end = new Date(toDate);
+
         end.setHours(23,59,59,999);
 
         dateMatch =
           dateMatch &&
           new Date(r.date) <= end;
+
       }
 
-      return officerMatch &&
-             paymentMatch &&
-             searchMatch &&
-             dateMatch;
+      return (
+        officerMatch &&
+        paymentMatch &&
+        searchMatch &&
+        dateMatch
+      );
+
     });
 
     const totalValue =
@@ -607,13 +690,16 @@ function render(data){
     filtered.forEach(r=>{
 
       if(!grouped[r.officer]){
+
         grouped[r.officer] = {
           officer:r.officer,
           total:0
         };
+
       }
 
       grouped[r.officer].total += r.amount;
+
     });
 
     const officerSummary =
@@ -625,14 +711,22 @@ function render(data){
 
         <div class="card">
           <div class="card-title">Receipt Lines</div>
-          <div class="card-value">${filtered.length.toLocaleString()}</div>
-          <div class="card-sub">Filtered transactions</div>
+          <div class="card-value">
+            ${filtered.length.toLocaleString()}
+          </div>
+          <div class="card-sub">
+            Filtered transactions
+          </div>
         </div>
 
         <div class="card">
           <div class="card-title">Total Receipt Value</div>
-          <div class="card-value">${fmtMoney(totalValue)}</div>
-          <div class="card-sub">Total amount received</div>
+          <div class="card-value">
+            ${fmtMoney(totalValue)}
+          </div>
+          <div class="card-sub">
+            Total collection
+          </div>
         </div>
 
         <div class="card">
@@ -640,7 +734,9 @@ function render(data){
           <div class="card-value">
             ${new Set(filtered.map(r=>r.customer)).size.toLocaleString()}
           </div>
-          <div class="card-sub">Unique customers</div>
+          <div class="card-sub">
+            Unique customers
+          </div>
         </div>
 
         <div class="card">
@@ -648,7 +744,9 @@ function render(data){
           <div class="card-value">
             ${new Set(filtered.map(r=>r.paymentMethod)).size.toLocaleString()}
           </div>
-          <div class="card-sub">Cash & bank analysis</div>
+          <div class="card-sub">
+            Cash & bank accounts
+          </div>
         </div>
 
       </div>
@@ -656,20 +754,31 @@ function render(data){
       <div class="grid">
 
         <div class="panel">
+
           <h3>Collection By Credit Officer</h3>
+
           <canvas id="chart"></canvas>
+
         </div>
 
         <div class="panel">
+
           <h3>Officer Summary</h3>
 
           <div style="display:flex;flex-direction:column;gap:10px">
+
             ${officerSummary.map(o=>`
+
               <div class="badge">
+
                 <span>${o.officer}</span>
+
                 <strong>${fmtMoney(o.total)}</strong>
+
               </div>
+
             `).join('')}
+
           </div>
 
         </div>
@@ -683,8 +792,15 @@ function render(data){
           <h3>Detailed Receipt Analysis</h3>
 
           <div class="action-bar">
-            <button class="copy-btn" onclick="copyTable()">📋 Copy</button>
-            <button class="download-btn" onclick="downloadCSV()">⬇ Download CSV</button>
+
+            <button class="copy-btn" onclick="copyTable()">
+              📋 Copy
+            </button>
+
+            <button class="download-btn" onclick="downloadCSV()">
+              ⬇ Download CSV
+            </button>
+
           </div>
 
         </div>
@@ -694,7 +810,9 @@ function render(data){
           <table id="analysisTable">
 
             <thead>
+
               <tr>
+
                 <th>Date</th>
                 <th>Reference</th>
                 <th>Customer</th>
@@ -702,15 +820,18 @@ function render(data){
                 <th>Payment Method</th>
                 <th>Account</th>
                 <th>Amount</th>
+
               </tr>
+
             </thead>
 
             <tbody>
 
-              ${
-                filtered.length
+              ${filtered.length
                 ? filtered.map(r=>`
+
                   <tr>
+
                     <td>${fmtDate(r.date)}</td>
                     <td>${r.reference || '-'}</td>
                     <td>${r.customer}</td>
@@ -718,7 +839,9 @@ function render(data){
                     <td>${r.paymentMethod}</td>
                     <td>${r.account}</td>
                     <td>${fmtMoney(r.amount)}</td>
+
                   </tr>
+
                 `).join('')
                 : `
                   <tr>
@@ -738,13 +861,16 @@ function render(data){
       </div>
     `;
 
+    /* Copy Table */
     window.copyTable = function(){
 
-      let text = '';
+      let text =
+        'Date\tReference\tCustomer\tCredit Officer\tPayment Method\tAccount\tAmount\n';
 
       filtered.forEach(r=>{
 
         text += [
+
           fmtDate(r.date),
           r.reference || '',
           r.customer,
@@ -752,6 +878,7 @@ function render(data){
           r.paymentMethod,
           r.account,
           r.amount
+
         ].join('\t') + '\n';
 
       });
@@ -759,8 +886,10 @@ function render(data){
       navigator.clipboard.writeText(text);
 
       alert('Detailed Receipt Analysis copied successfully.');
+
     };
 
+    /* Download CSV */
     window.downloadCSV = function(){
 
       let csv =
@@ -769,6 +898,7 @@ function render(data){
       filtered.forEach(r=>{
 
         csv += [
+
           `"${fmtDate(r.date)}"`,
           `"${r.reference || ''}"`,
           `"${r.customer}"`,
@@ -776,64 +906,114 @@ function render(data){
           `"${r.paymentMethod}"`,
           `"${r.account}"`,
           `"${r.amount}"`
+
         ].join(',') + '\n';
 
       });
 
-      const blob = new Blob([csv],{
-        type:'text/csv;charset=utf-8;'
-      });
+      const blob =
+        new Blob([csv],{
+          type:'text/csv;charset=utf-8;'
+        });
 
-      const link = document.createElement('a');
+      const link =
+        document.createElement('a');
 
-      link.href = URL.createObjectURL(blob);
+      link.href =
+        URL.createObjectURL(blob);
 
-      link.download = 'detailed_receipt_analysis.csv';
+      link.download =
+        'detailed_receipt_analysis.csv';
 
       document.body.appendChild(link);
 
       link.click();
 
       document.body.removeChild(link);
+
     };
 
-    const ctx = document.getElementById('chart');
+    /* Chart */
+    const ctx =
+      document.getElementById('chart');
 
     new Chart(ctx,{
+
       type:'bar',
+
       data:{
-        labels:officerSummary.map(o=>o.officer),
+
+        labels:
+          officerSummary.map(o=>o.officer),
+
         datasets:[{
+
           label:'Receipt Value',
-          data:officerSummary.map(o=>o.total),
+
+          data:
+            officerSummary.map(o=>o.total),
+
           backgroundColor:'#58a6ff',
+
           borderRadius:6
+
         }]
+
       },
+
       options:{
+
         responsive:true,
+
         maintainAspectRatio:false,
+
         plugins:{
+
           legend:{
+
             labels:{
               color:'#e6edf3'
             }
+
           }
+
         },
+
         scales:{
+
           x:{
-            ticks:{color:'#8b949e'},
-            grid:{color:'#30363d'}
-          },
-          y:{
+
             ticks:{
-              color:'#8b949e',
-              callback:(v)=>'₦'+Number(v).toLocaleString()
+              color:'#8b949e'
             },
-            grid:{color:'#30363d'}
+
+            grid:{
+              color:'#30363d'
+            }
+
+          },
+
+          y:{
+
+            ticks:{
+
+              color:'#8b949e',
+
+              callback:(v)=>
+                '₦'+Number(v).toLocaleString()
+
+            },
+
+            grid:{
+              color:'#30363d'
+            }
+
           }
+
         }
+
       }
+
     });
 
   }
@@ -842,6 +1022,7 @@ function render(data){
     .addEventListener('click',runAnalysis);
 
   runAnalysis();
+
 }
 </script>
 
