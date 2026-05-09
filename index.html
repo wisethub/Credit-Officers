@@ -9,237 +9,232 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-  * { box-sizing:border-box; margin:0; padding:0; }
+*{box-sizing:border-box;margin:0;padding:0}
 
-  body {
-    font-family: Inter, system-ui, sans-serif;
-    background:#0d1117;
-    color:#e6edf3;
-    min-height:100vh;
-    padding:20px;
+body{
+  font-family:Inter,system-ui,sans-serif;
+  background:#0d1117;
+  color:#e6edf3;
+  padding:20px;
+}
+
+.ctrl-bar{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  padding:12px 16px;
+  margin-bottom:18px;
+  background:#161b22;
+  border:1px solid #30363d;
+  border-radius:12px;
+  position:sticky;
+  top:0;
+  z-index:100;
+}
+
+.load-btn,.run-btn{
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:700;
+  color:#fff;
+  transition:.2s;
+}
+
+.load-btn{
+  background:#238636;
+  padding:10px 20px;
+}
+
+.run-btn{
+  background:#1f6feb;
+  padding:11px 18px;
+  width:100%;
+}
+
+.load-btn:hover,.run-btn:hover{opacity:.9}
+
+.load-btn:disabled{
+  opacity:.5;
+  cursor:not-allowed;
+}
+
+.prog-wrap{
+  flex:1;
+  min-width:120px;
+  height:6px;
+  background:#30363d;
+  border-radius:999px;
+  overflow:hidden;
+}
+
+.prog-bar{
+  height:100%;
+  width:0%;
+  background:#58a6ff;
+  transition:width .25s;
+}
+
+.status-txt{
+  font-size:12px;
+  color:#8b949e;
+}
+
+.err-box{
+  color:#f85149;
+  background:#161b22;
+  border:1px solid #30363d;
+  border-radius:8px;
+  padding:14px;
+}
+
+.filter-wrap{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:14px;
+  margin-bottom:18px;
+}
+
+.filter-box{
+  background:#161b22;
+  border:1px solid #30363d;
+  border-radius:12px;
+  padding:14px;
+}
+
+.filter-box label{
+  display:block;
+  margin-bottom:8px;
+  font-size:12px;
+  color:#8b949e;
+  font-weight:700;
+}
+
+.filter-box input,
+.filter-box select{
+  width:100%;
+  background:#0d1117;
+  color:#e6edf3;
+  border:1px solid #30363d;
+  border-radius:8px;
+  padding:10px;
+}
+
+.cards{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:16px;
+  margin-bottom:18px;
+}
+
+.card{
+  background:#161b22;
+  border:1px solid #30363d;
+  border-radius:16px;
+  padding:18px;
+}
+
+.card-title{
+  color:#8b949e;
+  font-size:12px;
+  text-transform:uppercase;
+  margin-bottom:10px;
+}
+
+.card-value{
+  font-size:28px;
+  font-weight:800;
+}
+
+.card-sub{
+  color:#8b949e;
+  font-size:12px;
+  margin-top:8px;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:1.2fr .8fr;
+  gap:18px;
+  margin-bottom:18px;
+}
+
+.panel{
+  background:#161b22;
+  border:1px solid #30363d;
+  border-radius:16px;
+  padding:18px;
+}
+
+.panel h3{
+  margin-bottom:16px;
+}
+
+.table-wrap{
+  overflow:auto;
+  border:1px solid #30363d;
+  border-radius:12px;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  min-width:1100px;
+}
+
+thead{
+  background:#0d1117;
+}
+
+th,td{
+  padding:12px 14px;
+  border-bottom:1px solid #30363d;
+  text-align:left;
+  font-size:13px;
+}
+
+th{
+  color:#8b949e;
+  text-transform:uppercase;
+  font-size:11px;
+}
+
+tbody tr:hover{
+  background:#1f2937;
+}
+
+.badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  width:100%;
+  padding:10px 12px;
+  background:#0d1117;
+  border:1px solid #30363d;
+  border-radius:10px;
+}
+
+.empty-state{
+  text-align:center;
+  padding:40px;
+  color:#8b949e;
+  background:#161b22;
+  border:1px dashed #30363d;
+  border-radius:16px;
+}
+
+canvas{
+  width:100%!important;
+  max-height:360px!important;
+}
+
+@media(max-width:980px){
+  .grid{
+    grid-template-columns:1fr;
   }
-
-  .ctrl-bar {
-    display:flex;
-    align-items:center;
-    gap:10px;
-    flex-wrap:wrap;
-    padding:12px 16px;
-    margin-bottom:18px;
-    background:#161b22;
-    border:1px solid #30363d;
-    border-radius:12px;
-    position:sticky;
-    top:0;
-    z-index:20;
-  }
-
-  .load-btn {
-    padding:10px 20px;
-    border:none;
-    border-radius:8px;
-    cursor:pointer;
-    font-size:13px;
-    font-weight:700;
-    background:#238636;
-    color:#fff;
-    transition:.2s;
-  }
-
-  .load-btn:hover { opacity:.9; }
-
-  .load-btn:disabled {
-    opacity:.45;
-    cursor:not-allowed;
-  }
-
-  .prog-wrap {
-    flex:1;
-    min-width:120px;
-    height:6px;
-    background:#30363d;
-    border-radius:999px;
-    overflow:hidden;
-  }
-
-  .prog-bar {
-    height:100%;
-    width:0%;
-    background:#58a6ff;
-    border-radius:999px;
-    transition:width .25s;
-  }
-
-  .status-txt {
-    font-size:12px;
-    color:#8b949e;
-    white-space:nowrap;
-  }
-
-  .err-box {
-    color:#f85149;
-    background:#161b22;
-    border:1px solid #30363d;
-    border-radius:8px;
-    padding:14px 16px;
-    font-size:13px;
-    margin-bottom:16px;
-  }
-
-  .filter-wrap {
-    display:grid;
-    grid-template-columns: repeat(auto-fit,minmax(180px,1fr));
-    gap:12px;
-    margin-bottom:18px;
-  }
-
-  .filter-box {
-    background:#161b22;
-    border:1px solid #30363d;
-    border-radius:12px;
-    padding:14px;
-  }
-
-  .filter-box label {
-    display:block;
-    margin-bottom:8px;
-    color:#8b949e;
-    font-size:12px;
-    font-weight:600;
-  }
-
-  .filter-box input,
-  .filter-box select {
-    width:100%;
-    background:#0d1117;
-    color:#e6edf3;
-    border:1px solid #30363d;
-    border-radius:8px;
-    padding:10px;
-    outline:none;
-  }
-
-  .cards {
-    display:grid;
-    grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
-    gap:16px;
-    margin-bottom:22px;
-  }
-
-  .card {
-    background:#161b22;
-    border:1px solid #30363d;
-    border-radius:16px;
-    padding:18px;
-    box-shadow:0 0 0 1px rgba(255,255,255,.02);
-  }
-
-  .card-title {
-    color:#8b949e;
-    font-size:12px;
-    margin-bottom:10px;
-    text-transform:uppercase;
-    letter-spacing:.5px;
-  }
-
-  .card-value {
-    font-size:28px;
-    font-weight:800;
-    line-height:1.1;
-  }
-
-  .card-sub {
-    margin-top:8px;
-    color:#8b949e;
-    font-size:12px;
-  }
-
-  .grid {
-    display:grid;
-    grid-template-columns: 1.2fr .8fr;
-    gap:18px;
-    margin-bottom:18px;
-  }
-
-  .panel {
-    background:#161b22;
-    border:1px solid #30363d;
-    border-radius:16px;
-    padding:18px;
-  }
-
-  .panel h3 {
-    margin-bottom:16px;
-    font-size:16px;
-  }
-
-  .table-wrap {
-    overflow:auto;
-    border-radius:12px;
-    border:1px solid #30363d;
-  }
-
-  table {
-    width:100%;
-    border-collapse:collapse;
-    min-width:800px;
-  }
-
-  thead {
-    background:#0d1117;
-    position:sticky;
-    top:0;
-  }
-
-  th, td {
-    padding:12px 14px;
-    border-bottom:1px solid #30363d;
-    text-align:left;
-    font-size:13px;
-  }
-
-  th {
-    color:#8b949e;
-    font-weight:700;
-    text-transform:uppercase;
-    font-size:11px;
-    letter-spacing:.5px;
-  }
-
-  tbody tr:hover {
-    background:#1f2937;
-  }
-
-  .badge {
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
-    background:#0d1117;
-    border:1px solid #30363d;
-    padding:6px 10px;
-    border-radius:999px;
-    font-size:12px;
-  }
-
-  .empty-state {
-    padding:40px;
-    text-align:center;
-    color:#8b949e;
-    background:#161b22;
-    border:1px dashed #30363d;
-    border-radius:16px;
-  }
-
-  canvas {
-    width:100% !important;
-    max-height:360px !important;
-  }
-
-  @media(max-width:980px){
-    .grid{
-      grid-template-columns:1fr;
-    }
-  }
+}
 </style>
 
 </head>
@@ -278,7 +273,7 @@ function postMessageWithResponse(message) {
 }
 
 /* ══════════════════════════════════
-   getCustomerBatch
+   Customer Fetch
 ══════════════════════════════════ */
 async function getCustomerBatch(onProgress) {
   const allItems = [];
@@ -312,20 +307,26 @@ async function getCustomerBatch(onProgress) {
 }
 
 /* ══════════════════════════════════
-   Generic pagination fetcher
+   Receipt Fetch
 ══════════════════════════════════ */
 async function getReceiptBatch(onProgress) {
+
   const allItems = [];
   let nextToken  = null;
   let pageNum    = 0;
   let apiTotal   = null;
 
   do {
+
     const path = nextToken
       ? '/api4/receipt-batch?PageSize=99999&next_page_token=' + encodeURIComponent(nextToken)
       : '/api4/receipt-batch?PageSize=99999';
 
-    const data = await postMessageWithResponse({ type:'api-request', method:'GET', path });
+    const data = await postMessageWithResponse({
+      type:'api-request',
+      method:'GET',
+      path
+    });
 
     const page = Array.isArray(data) ? data : (data.items || data.data || []);
     allItems.push(...page);
@@ -337,8 +338,9 @@ async function getReceiptBatch(onProgress) {
     }
 
     pageNum++;
-    if (onProgress) onProgress(allItems.length, apiTotal, pageNum);
-    if (pageNum >= 1000) break;
+    if(onProgress) onProgress(allItems.length, apiTotal, pageNum);
+
+    if(pageNum >= 1000) break;
 
   } while(nextToken);
 
@@ -346,61 +348,53 @@ async function getReceiptBatch(onProgress) {
 }
 
 /* ══════════════════════════════════
-   Utilities
+   Utils
 ══════════════════════════════════ */
 const fmtMoney = v =>
-  '₦' + Number(v || 0).toLocaleString(undefined,{
-    minimumFractionDigits:2,
-    maximumFractionDigits:2
-  });
+'₦' + Number(v || 0).toLocaleString(undefined,{
+  minimumFractionDigits:2,
+  maximumFractionDigits:2
+});
 
 const fmtDate = d => {
   if(!d) return '-';
   const dt = new Date(d);
-  if(isNaN(dt)) return '-';
-  return dt.toLocaleDateString(undefined,{
-    year:'numeric',
-    month:'short',
-    day:'numeric'
-  });
+  return isNaN(dt) ? '-' :
+    dt.toLocaleDateString(undefined,{
+      year:'numeric',
+      month:'short',
+      day:'numeric'
+    });
 };
 
-function safe(v,fallback='-'){
-  return v ?? fallback;
-}
-
 /* ══════════════════════════════════
-   Main Loader
+   Load Everything
 ══════════════════════════════════ */
-async function loadAllRecords() {
+async function loadAllRecords(){
 
-  const btn    = document.getElementById('load-btn');
-  const bar    = document.getElementById('prog-bar');
+  const btn = document.getElementById('load-btn');
+  const bar = document.getElementById('prog-bar');
   const status = document.getElementById('status-txt');
-  const app    = document.getElementById('app');
+  const app = document.getElementById('app');
 
   btn.disabled = true;
-  btn.textContent = 'Loading…';
+  btn.textContent = 'Loading...';
   app.innerHTML = '';
   bar.style.width = '0%';
 
-  try {
+  try{
 
-    status.textContent = 'Loading customers...';
-
-    const customers = await getCustomerBatch((loaded,total,page)=>{
-      status.textContent = `Customers: ${loaded.toLocaleString()} loaded`;
+    const customers = await getCustomerBatch((loaded,total)=>{
+      status.textContent = `Loading customers: ${loaded.toLocaleString()}`;
       if(total){
-        bar.style.width = Math.min(45, loaded/total*45) + '%';
+        bar.style.width = Math.min(45,loaded/total*45) + '%';
       }
     });
 
-    status.textContent = 'Loading receipts...';
-
-    const receipts = await getReceiptBatch((loaded,total,page)=>{
-      status.textContent = `Receipts: ${loaded.toLocaleString()} loaded`;
+    const receipts = await getReceiptBatch((loaded,total)=>{
+      status.textContent = `Loading receipts: ${loaded.toLocaleString()}`;
       if(total){
-        bar.style.width = 45 + Math.min(50, loaded/total*50) + '%';
+        bar.style.width = 45 + Math.min(50,loaded/total*50) + '%';
       }
     });
 
@@ -410,14 +404,14 @@ async function loadAllRecords() {
       `✓ ${customers.length.toLocaleString()} customers · ${receipts.length.toLocaleString()} receipts loaded`;
 
     btn.disabled = false;
-    btn.textContent = '↺ Reload Dashboard';
+    btn.textContent = '↺ Reload';
 
     render({
       customers,
       receipts
     });
 
-  } catch(err){
+  }catch(err){
 
     btn.disabled = false;
     btn.textContent = '↺ Retry';
@@ -427,49 +421,50 @@ async function loadAllRecords() {
     app.innerHTML = `
       <div class="err-box">
         <strong>Unable to load data</strong><br><br>
-        ${err.message}<br><br>
-        <small>Ensure this extension is running inside Manager.io.</small>
+        ${err.message}
       </div>
     `;
   }
 }
 
 /* ══════════════════════════════════
-   Dashboard Renderer
+   Main Render
 ══════════════════════════════════ */
-function render(data) {
+function render(data){
 
   const app = document.getElementById('app');
 
   const customers = data?.customers || [];
-  const receipts  = data?.receipts || [];
+  const receipts = data?.receipts || [];
 
   if(!receipts.length){
 
     app.innerHTML = `
       <div class="empty-state">
-        <h2 style="margin-bottom:10px">No Receipt Records Found</h2>
-        <p>No data available from /api4/receipt-batch</p>
+        <h2>No Receipt Data Found</h2>
       </div>
     `;
     return;
   }
 
-  /* Build customer map */
   const customerMap = {};
+
   customers.forEach(c=>{
     customerMap[c?.key] = c?.item?.name || 'Unknown Customer';
   });
 
-  /* Normalize receipt lines */
   const rows = [];
 
   receipts.forEach(r=>{
 
-    const receiptDate = r?.item?.date;
-    const reference   = r?.item?.reference;
-    const customerId  = r?.item?.customer;
-    const customer    = customerMap[customerId] || 'Unknown Customer';
+    const customerName =
+      customerMap[r?.item?.customer] || 'Unknown Customer';
+
+    const receivedIn =
+      r?.item?.receivedIn || '';
+
+    const accountType =
+      receivedIn ? 'Bank/Cash' : 'Unknown';
 
     const lines = r?.item?.lines || [];
 
@@ -479,57 +474,27 @@ function render(data) {
         line?.customFields2?.strings?.['50ca827c-17af-4164-bc29-453df6192f02']
         || 'Unassigned';
 
+      const accountLeg =
+        line?.lineDescription ||
+        line?.account ||
+        'Loan Form';
+
       rows.push({
-        date: receiptDate,
-        reference,
-        customer,
+        date:r?.item?.date,
+        reference:r?.item?.reference,
+        customer:customerName,
         officer,
-        amount: Number(line?.amount || 0)
+        amount:Number(line?.amount || 0),
+        accountType,
+        accountLeg
       });
+
     });
 
   });
 
-  /* Summary */
-  const totalReceipts = rows.length;
-
-  const totalValue = rows.reduce((a,b)=>a+b.amount,0);
-
-  const uniqueCustomers =
-    new Set(rows.map(r=>r.customer)).size;
-
-  const uniqueOfficers =
-    new Set(rows.map(r=>r.officer)).size;
-
-  /* Officer grouping */
-  const officerSummary = {};
-
-  rows.forEach(r=>{
-
-    if(!officerSummary[r.officer]){
-      officerSummary[r.officer] = {
-        officer:r.officer,
-        total:0,
-        count:0
-      };
-    }
-
-    officerSummary[r.officer].total += r.amount;
-    officerSummary[r.officer].count += 1;
-  });
-
-  const officerArray =
-    Object.values(officerSummary)
-    .sort((a,b)=>b.total-a.total);
-
-  /* Filters */
   app.innerHTML = `
     <div class="filter-wrap">
-
-      <div class="filter-box">
-        <label>Search Customer</label>
-        <input id="searchInput" placeholder="Type customer name...">
-      </div>
 
       <div class="filter-box">
         <label>Credit Officer</label>
@@ -537,8 +502,16 @@ function render(data) {
           <option value="">All Officers</option>
           ${[...new Set(rows.map(r=>r.officer))]
             .sort()
-            .map(o=>`<option>${o}</option>`)
+            .map(o=>`<option value="${o}">${o}</option>`)
             .join('')}
+        </select>
+      </div>
+
+      <div class="filter-box">
+        <label>Account Type</label>
+        <select id="accountTypeFilter">
+          <option value="">All Types</option>
+          <option value="Bank/Cash">Bank/Cash</option>
         </select>
       </div>
 
@@ -552,221 +525,247 @@ function render(data) {
         <input type="date" id="toDate">
       </div>
 
-    </div>
-
-    <div class="cards">
-
-      <div class="card">
-        <div class="card-title">Total Receipt Lines</div>
-        <div class="card-value">${totalReceipts.toLocaleString()}</div>
-        <div class="card-sub">All receipt line records</div>
+      <div class="filter-box">
+        <label>Customer Search</label>
+        <input type="text" id="searchInput" placeholder="Search customer...">
       </div>
 
-      <div class="card">
-        <div class="card-title">Total Receipt Value</div>
-        <div class="card-value">${fmtMoney(totalValue)}</div>
-        <div class="card-sub">Combined receipt amount</div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">Customers</div>
-        <div class="card-value">${uniqueCustomers.toLocaleString()}</div>
-        <div class="card-sub">Unique customers</div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">Credit Officers</div>
-        <div class="card-value">${uniqueOfficers.toLocaleString()}</div>
-        <div class="card-sub">Active officers</div>
+      <div class="filter-box">
+        <label>&nbsp;</label>
+        <button class="run-btn" id="runBtn">▶ Run Analysis</button>
       </div>
 
     </div>
 
-    <div class="grid">
-
-      <div class="panel">
-        <h3>Receipt Collection by Credit Officer</h3>
-        <canvas id="officerChart"></canvas>
-      </div>
-
-      <div class="panel">
-        <h3>Top Credit Officers</h3>
-
-        <div style="display:flex;flex-direction:column;gap:10px">
-          ${officerArray.slice(0,8).map(o=>`
-            <div class="badge" style="justify-content:space-between;width:100%">
-              <span>${o.officer}</span>
-              <strong>${fmtMoney(o.total)}</strong>
-            </div>
-          `).join('')}
-        </div>
-
-      </div>
-
-    </div>
-
-    <div class="panel">
-
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:10px;flex-wrap:wrap">
-        <h3>Receipt Analysis Table</h3>
-        <div class="badge">
-          <span id="recordCount">${rows.length.toLocaleString()}</span> Records
-        </div>
-      </div>
-
-      <div class="table-wrap">
-
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Reference</th>
-              <th>Customer</th>
-              <th>Credit Officer</th>
-              <th>Amount</th>
-            </tr>
-          </thead>
-
-          <tbody id="tableBody"></tbody>
-        </table>
-
-      </div>
-
-    </div>
+    <div id="dashboard"></div>
   `;
 
-  const tbody = document.getElementById('tableBody');
-  const searchInput = document.getElementById('searchInput');
-  const officerFilter = document.getElementById('officerFilter');
-  const fromDate = document.getElementById('fromDate');
-  const toDate = document.getElementById('toDate');
-  const recordCount = document.getElementById('recordCount');
+  const dashboard = document.getElementById('dashboard');
 
-  function renderTable(filtered){
+  function runAnalysis(){
 
-    tbody.innerHTML = '';
+    const officer = document.getElementById('officerFilter').value;
+    const accountType = document.getElementById('accountTypeFilter').value;
+    const fromDate = document.getElementById('fromDate').value;
+    const toDate = document.getElementById('toDate').value;
+    const search = document.getElementById('searchInput').value.toLowerCase().trim();
 
-    if(!filtered.length){
+    let filtered = rows.filter(r=>{
 
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="5" style="text-align:center;padding:30px;color:#8b949e">
-            No matching records found
-          </td>
-        </tr>
-      `;
+      const officerMatch =
+        !officer || r.officer === officer;
 
-      recordCount.textContent = '0';
-      return;
-    }
+      const accountMatch =
+        !accountType || r.accountType === accountType;
+
+      const searchMatch =
+        !search || r.customer.toLowerCase().includes(search);
+
+      let dateMatch = true;
+
+      if(fromDate){
+        dateMatch =
+          dateMatch &&
+          new Date(r.date) >= new Date(fromDate);
+      }
+
+      if(toDate){
+        const end = new Date(toDate);
+        end.setHours(23,59,59,999);
+
+        dateMatch =
+          dateMatch &&
+          new Date(r.date) <= end;
+      }
+
+      return officerMatch &&
+             accountMatch &&
+             searchMatch &&
+             dateMatch;
+    });
+
+    const totalValue =
+      filtered.reduce((a,b)=>a+b.amount,0);
+
+    const totalCount = filtered.length;
+
+    const grouped = {};
 
     filtered.forEach(r=>{
 
-      tbody.innerHTML += `
-        <tr>
-          <td>${fmtDate(r.date)}</td>
-          <td>${safe(r.reference)}</td>
-          <td>${safe(r.customer)}</td>
-          <td>${safe(r.officer)}</td>
-          <td><strong>${fmtMoney(r.amount)}</strong></td>
-        </tr>
-      `;
-    });
-
-    recordCount.textContent =
-      filtered.length.toLocaleString();
-  }
-
-  function applyFilters(){
-
-    const q = searchInput.value.toLowerCase().trim();
-    const officer = officerFilter.value;
-    const from = fromDate.value;
-    const to = toDate.value;
-
-    const filtered = rows.filter(r=>{
-
-      const matchesSearch =
-        !q ||
-        r.customer.toLowerCase().includes(q);
-
-      const matchesOfficer =
-        !officer ||
-        r.officer === officer;
-
-      let matchesDate = true;
-
-      if(from){
-        matchesDate =
-          matchesDate &&
-          new Date(r.date) >= new Date(from);
+      if(!grouped[r.officer]){
+        grouped[r.officer] = {
+          officer:r.officer,
+          total:0,
+          count:0
+        };
       }
 
-      if(to){
-        const toD = new Date(to);
-        toD.setHours(23,59,59,999);
-
-        matchesDate =
-          matchesDate &&
-          new Date(r.date) <= toD;
-      }
-
-      return matchesSearch &&
-             matchesOfficer &&
-             matchesDate;
-
+      grouped[r.officer].total += r.amount;
+      grouped[r.officer].count++;
     });
 
-    renderTable(filtered);
-  }
+    const officerSummary =
+      Object.values(grouped)
+      .sort((a,b)=>b.total-a.total);
 
-  searchInput.addEventListener('input', applyFilters);
-  officerFilter.addEventListener('change', applyFilters);
-  fromDate.addEventListener('change', applyFilters);
-  toDate.addEventListener('change', applyFilters);
+    dashboard.innerHTML = `
+      <div class="cards">
 
-  renderTable(rows);
+        <div class="card">
+          <div class="card-title">Receipt Lines</div>
+          <div class="card-value">${totalCount.toLocaleString()}</div>
+          <div class="card-sub">Filtered transactions</div>
+        </div>
 
-  /* Chart */
-  const ctx = document.getElementById('officerChart');
+        <div class="card">
+          <div class="card-title">Total Receipt Value</div>
+          <div class="card-value">${fmtMoney(totalValue)}</div>
+          <div class="card-sub">Total amount received</div>
+        </div>
 
-  new Chart(ctx,{
-    type:'bar',
-    data:{
-      labels: officerArray.slice(0,10).map(o=>o.officer),
-      datasets:[{
-        label:'Receipt Value',
-        data: officerArray.slice(0,10).map(o=>o.total),
-        backgroundColor:'#58a6ff',
-        borderRadius:6
-      }]
-    },
-    options:{
-      responsive:true,
-      maintainAspectRatio:false,
-      plugins:{
-        legend:{
-          labels:{
-            color:'#e6edf3'
+        <div class="card">
+          <div class="card-title">Customers</div>
+          <div class="card-value">
+            ${new Set(filtered.map(r=>r.customer)).size.toLocaleString()}
+          </div>
+          <div class="card-sub">Unique customers</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Credit Officers</div>
+          <div class="card-value">
+            ${new Set(filtered.map(r=>r.officer)).size.toLocaleString()}
+          </div>
+          <div class="card-sub">Filtered officers</div>
+        </div>
+
+      </div>
+
+      <div class="grid">
+
+        <div class="panel">
+          <h3>Collection By Credit Officer</h3>
+          <canvas id="chart"></canvas>
+        </div>
+
+        <div class="panel">
+          <h3>Officer Summary</h3>
+
+          <div style="display:flex;flex-direction:column;gap:10px">
+            ${officerSummary.map(o=>`
+              <div class="badge">
+                <span>${o.officer}</span>
+                <strong>${fmtMoney(o.total)}</strong>
+              </div>
+            `).join('')}
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="panel">
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <h3>Detailed Receipt Analysis</h3>
+          <strong>${filtered.length.toLocaleString()} Records</strong>
+        </div>
+
+        <div class="table-wrap">
+
+          <table>
+
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Reference</th>
+                <th>Customer</th>
+                <th>Credit Officer</th>
+                <th>Account Type</th>
+                <th>Account Leg</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+
+            <tbody>
+
+              ${
+                filtered.length
+                ? filtered.map(r=>`
+                  <tr>
+                    <td>${fmtDate(r.date)}</td>
+                    <td>${r.reference || '-'}</td>
+                    <td>${r.customer}</td>
+                    <td>${r.officer}</td>
+                    <td>${r.accountType}</td>
+                    <td>${r.accountLeg}</td>
+                    <td><strong>${fmtMoney(r.amount)}</strong></td>
+                  </tr>
+                `).join('')
+                : `
+                  <tr>
+                    <td colspan="7" style="text-align:center;padding:30px;color:#8b949e">
+                      No matching records found
+                    </td>
+                  </tr>
+                `
+              }
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+    `;
+
+    const ctx = document.getElementById('chart');
+
+    new Chart(ctx,{
+      type:'bar',
+      data:{
+        labels:officerSummary.map(o=>o.officer),
+        datasets:[{
+          label:'Receipt Value',
+          data:officerSummary.map(o=>o.total),
+          backgroundColor:'#58a6ff',
+          borderRadius:6
+        }]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        plugins:{
+          legend:{
+            labels:{
+              color:'#e6edf3'
+            }
+          }
+        },
+        scales:{
+          x:{
+            ticks:{color:'#8b949e'},
+            grid:{color:'#30363d'}
+          },
+          y:{
+            ticks:{
+              color:'#8b949e',
+              callback:(v)=>'₦'+Number(v).toLocaleString()
+            },
+            grid:{color:'#30363d'}
           }
         }
-      },
-      scales:{
-        x:{
-          ticks:{ color:'#8b949e' },
-          grid:{ color:'#30363d' }
-        },
-        y:{
-          ticks:{
-            color:'#8b949e',
-            callback:(v)=>'₦'+Number(v).toLocaleString()
-          },
-          grid:{ color:'#30363d' }
-        }
       }
-    }
-  });
+    });
 
+  }
+
+  document.getElementById('runBtn')
+    .addEventListener('click',runAnalysis);
+
+  runAnalysis();
 }
 </script>
 
