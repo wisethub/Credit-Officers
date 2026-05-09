@@ -33,7 +33,7 @@ body{
   z-index:100;
 }
 
-.load-btn,.run-btn{
+.load-btn,.run-btn,.copy-btn,.download-btn{
   border:none;
   border-radius:8px;
   cursor:pointer;
@@ -53,7 +53,22 @@ body{
   width:100%;
 }
 
-.load-btn:hover,.run-btn:hover{opacity:.9}
+.copy-btn{
+  background:#8957e5;
+  padding:10px 14px;
+}
+
+.download-btn{
+  background:#db6d28;
+  padding:10px 14px;
+}
+
+.load-btn:hover,
+.run-btn:hover,
+.copy-btn:hover,
+.download-btn:hover{
+  opacity:.9;
+}
 
 .load-btn:disabled{
   opacity:.5;
@@ -180,7 +195,7 @@ body{
 table{
   width:100%;
   border-collapse:collapse;
-  min-width:1100px;
+  min-width:1200px;
 }
 
 thead{
@@ -223,6 +238,12 @@ tbody tr:hover{
   background:#161b22;
   border:1px dashed #30363d;
   border-radius:16px;
+}
+
+.action-bar{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
 }
 
 canvas{
@@ -347,9 +368,6 @@ async function getReceiptBatch(onProgress) {
   return allItems;
 }
 
-/* ══════════════════════════════════
-   Utils
-══════════════════════════════════ */
 const fmtMoney = v =>
 '₦' + Number(v || 0).toLocaleString(undefined,{
   minimumFractionDigits:2,
@@ -367,9 +385,6 @@ const fmtDate = d => {
     });
 };
 
-/* ══════════════════════════════════
-   Load Everything
-══════════════════════════════════ */
 async function loadAllRecords(){
 
   const btn = document.getElementById('load-btn');
@@ -427,9 +442,6 @@ async function loadAllRecords(){
   }
 }
 
-/* ══════════════════════════════════
-   Main Render
-══════════════════════════════════ */
 function render(data){
 
   const app = document.getElementById('app');
@@ -460,11 +472,10 @@ function render(data){
     const customerName =
       customerMap[r?.item?.customer] || 'Unknown Customer';
 
-    const receivedIn =
-      r?.item?.receivedIn || '';
-
-    const accountType =
-      receivedIn ? 'Bank/Cash' : 'Unknown';
+    const paymentMethod =
+      r?.item?.receivedInName ||
+      r?.item?.receivedIn ||
+      'Unknown';
 
     const lines = r?.item?.lines || [];
 
@@ -474,10 +485,11 @@ function render(data){
         line?.customFields2?.strings?.['50ca827c-17af-4164-bc29-453df6192f02']
         || 'Unassigned';
 
-      const accountLeg =
+      const account =
+        line?.accountName ||
         line?.lineDescription ||
         line?.account ||
-        'Loan Form';
+        'Unknown Account';
 
       rows.push({
         date:r?.item?.date,
@@ -485,8 +497,8 @@ function render(data){
         customer:customerName,
         officer,
         amount:Number(line?.amount || 0),
-        accountType,
-        accountLeg
+        paymentMethod,
+        account
       });
 
     });
@@ -508,10 +520,13 @@ function render(data){
       </div>
 
       <div class="filter-box">
-        <label>Account Type</label>
-        <select id="accountTypeFilter">
-          <option value="">All Types</option>
-          <option value="Bank/Cash">Bank/Cash</option>
+        <label>Payment Method</label>
+        <select id="paymentFilter">
+          <option value="">All Payment Methods</option>
+          ${[...new Set(rows.map(r=>r.paymentMethod))]
+            .sort()
+            .map(p=>`<option value="${p}">${p}</option>`)
+            .join('')}
         </select>
       </div>
 
@@ -545,18 +560,18 @@ function render(data){
   function runAnalysis(){
 
     const officer = document.getElementById('officerFilter').value;
-    const accountType = document.getElementById('accountTypeFilter').value;
+    const payment = document.getElementById('paymentFilter').value;
     const fromDate = document.getElementById('fromDate').value;
     const toDate = document.getElementById('toDate').value;
     const search = document.getElementById('searchInput').value.toLowerCase().trim();
 
-    let filtered = rows.filter(r=>{
+    const filtered = rows.filter(r=>{
 
       const officerMatch =
         !officer || r.officer === officer;
 
-      const accountMatch =
-        !accountType || r.accountType === accountType;
+      const paymentMatch =
+        !payment || r.paymentMethod === payment;
 
       const searchMatch =
         !search || r.customer.toLowerCase().includes(search);
@@ -579,15 +594,13 @@ function render(data){
       }
 
       return officerMatch &&
-             accountMatch &&
+             paymentMatch &&
              searchMatch &&
              dateMatch;
     });
 
     const totalValue =
       filtered.reduce((a,b)=>a+b.amount,0);
-
-    const totalCount = filtered.length;
 
     const grouped = {};
 
@@ -596,13 +609,11 @@ function render(data){
       if(!grouped[r.officer]){
         grouped[r.officer] = {
           officer:r.officer,
-          total:0,
-          count:0
+          total:0
         };
       }
 
       grouped[r.officer].total += r.amount;
-      grouped[r.officer].count++;
     });
 
     const officerSummary =
@@ -614,7 +625,7 @@ function render(data){
 
         <div class="card">
           <div class="card-title">Receipt Lines</div>
-          <div class="card-value">${totalCount.toLocaleString()}</div>
+          <div class="card-value">${filtered.length.toLocaleString()}</div>
           <div class="card-sub">Filtered transactions</div>
         </div>
 
@@ -633,11 +644,11 @@ function render(data){
         </div>
 
         <div class="card">
-          <div class="card-title">Credit Officers</div>
+          <div class="card-title">Payment Methods</div>
           <div class="card-value">
-            ${new Set(filtered.map(r=>r.officer)).size.toLocaleString()}
+            ${new Set(filtered.map(r=>r.paymentMethod)).size.toLocaleString()}
           </div>
-          <div class="card-sub">Filtered officers</div>
+          <div class="card-sub">Cash & bank analysis</div>
         </div>
 
       </div>
@@ -667,14 +678,20 @@ function render(data){
 
       <div class="panel">
 
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+
           <h3>Detailed Receipt Analysis</h3>
-          <strong>${filtered.length.toLocaleString()} Records</strong>
+
+          <div class="action-bar">
+            <button class="copy-btn" onclick="copyTable()">📋 Copy</button>
+            <button class="download-btn" onclick="downloadCSV()">⬇ Download CSV</button>
+          </div>
+
         </div>
 
         <div class="table-wrap">
 
-          <table>
+          <table id="analysisTable">
 
             <thead>
               <tr>
@@ -682,8 +699,8 @@ function render(data){
                 <th>Reference</th>
                 <th>Customer</th>
                 <th>Credit Officer</th>
-                <th>Account Type</th>
-                <th>Account Leg</th>
+                <th>Payment Method</th>
+                <th>Account</th>
                 <th>Amount</th>
               </tr>
             </thead>
@@ -698,9 +715,9 @@ function render(data){
                     <td>${r.reference || '-'}</td>
                     <td>${r.customer}</td>
                     <td>${r.officer}</td>
-                    <td>${r.accountType}</td>
-                    <td>${r.accountLeg}</td>
-                    <td><strong>${fmtMoney(r.amount)}</strong></td>
+                    <td>${r.paymentMethod}</td>
+                    <td>${r.account}</td>
+                    <td>${fmtMoney(r.amount)}</td>
                   </tr>
                 `).join('')
                 : `
@@ -720,6 +737,65 @@ function render(data){
 
       </div>
     `;
+
+    window.copyTable = function(){
+
+      let text = '';
+
+      filtered.forEach(r=>{
+
+        text += [
+          fmtDate(r.date),
+          r.reference || '',
+          r.customer,
+          r.officer,
+          r.paymentMethod,
+          r.account,
+          r.amount
+        ].join('\t') + '\n';
+
+      });
+
+      navigator.clipboard.writeText(text);
+
+      alert('Detailed Receipt Analysis copied successfully.');
+    };
+
+    window.downloadCSV = function(){
+
+      let csv =
+        'Date,Reference,Customer,Credit Officer,Payment Method,Account,Amount\n';
+
+      filtered.forEach(r=>{
+
+        csv += [
+          `"${fmtDate(r.date)}"`,
+          `"${r.reference || ''}"`,
+          `"${r.customer}"`,
+          `"${r.officer}"`,
+          `"${r.paymentMethod}"`,
+          `"${r.account}"`,
+          `"${r.amount}"`
+        ].join(',') + '\n';
+
+      });
+
+      const blob = new Blob([csv],{
+        type:'text/csv;charset=utf-8;'
+      });
+
+      const link = document.createElement('a');
+
+      link.href = URL.createObjectURL(blob);
+
+      link.download = 'detailed_receipt_analysis.csv';
+
+      document.body.appendChild(link);
+
+      link.click();
+
+      document.body.removeChild(link);
+    };
 
     const ctx = document.getElementById('chart');
 
